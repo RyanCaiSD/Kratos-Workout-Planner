@@ -1,0 +1,8 @@
+{
+  "name": "Kratos Workout Planner & Fitness Tracker",
+  "description": "Comprehensive workout planner, progressive overload tracker, and weekly fitness goal manager with active session timer and muscle balance analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
