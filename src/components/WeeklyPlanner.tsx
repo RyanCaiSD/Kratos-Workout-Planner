@@ -13,6 +13,7 @@ import {
   SlidersHorizontal,
   Dumbbell,
   Sparkles,
+  Target,
 } from 'lucide-react';
 import {
   WorkoutSession,
@@ -256,6 +257,14 @@ export const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({
           >
             <Sparkles className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Smart Routine</span>
+          </button>
+
+          <button
+            onClick={onOpenGoalsModal}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:text-neutral-100 bg-neutral-900 border border-neutral-800 rounded hover:border-neutral-700 transition-colors whitespace-nowrap"
+          >
+            <Target className="h-3.5 w-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Update Goals</span>
           </button>
         </div>
       </div>

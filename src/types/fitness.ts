@@ -100,6 +100,7 @@ export interface WeeklyGoal {
   targetCardioMinutes: number; // e.g. 60
   targetMuscleSets: Partial<Record<MuscleGroup, number>>;
   milestones: CustomMilestone[];
+  fitnessGoal?: 'hypertrophy' | 'strength' | 'fat_loss' | 'mobility';
 }
 
 export interface RoutineExerciseConfig {

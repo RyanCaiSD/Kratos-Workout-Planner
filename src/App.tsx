@@ -403,11 +403,25 @@ export default function App() {
     saveExercises(updated);
   };
 
-  // Weekly goals management
-  const handleSaveWeeklyGoal = (newGoal: WeeklyGoal) => {
+  // Weekly goals management with automatic plan adjustment
+  const handleSaveWeeklyGoal = (
+    newGoal: WeeklyGoal,
+    adjustedRoutines?: RoutineTemplate[],
+    adjustedSchedule?: DayPlan[]
+  ) => {
     if (!currentUser) return;
     setWeeklyGoal(newGoal);
     saveUserWeeklyGoal(currentUser.id, newGoal);
+
+    if (adjustedRoutines && adjustedRoutines.length > 0) {
+      setRoutines(adjustedRoutines);
+      saveUserRoutines(currentUser.id, adjustedRoutines);
+    }
+
+    if (adjustedSchedule && adjustedSchedule.length > 0) {
+      setSchedule(adjustedSchedule);
+      saveUserSchedule(currentUser.id, adjustedSchedule);
+    }
   };
 
   // Reset current user data to zero
@@ -604,6 +618,8 @@ export default function App() {
         <WeeklyGoalsModal
           goal={weeklyGoal}
           unit={unit}
+          currentSchedule={schedule}
+          currentRoutines={routines}
           onSaveGoal={handleSaveWeeklyGoal}
           onClose={() => setShowGoalsModal(false)}
           onResetData={handleResetCurrentUserData}

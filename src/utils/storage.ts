@@ -608,7 +608,28 @@ export function generateOnboardingPlan(
           schedule.push({ date: iso, isRestDay: true, routineName: 'Rest & Recovery' });
         }
       });
+    } else if (daysPerWeek === 5) {
+      // 5-Day PPL + Upper / Lower Split
+      currentWeekDates.forEach((date, idx) => {
+        const iso = formatDateToISO(date);
+        if (idx === 0) {
+          schedule.push({ date: iso, routineId: 'routine-push-hypertrophy', routineName: 'Push: Chest, Shoulders & Triceps', isRestDay: false });
+        } else if (idx === 1) {
+          schedule.push({ date: iso, routineId: 'routine-pull-hypertrophy', routineName: 'Pull: Back, Rear Delts & Biceps', isRestDay: false });
+        } else if (idx === 2) {
+          schedule.push({ date: iso, routineId: 'routine-legs-hypertrophy', routineName: 'Legs: Quads, Hamstrings & Glutes', isRestDay: false });
+        } else if (idx === 3) {
+          schedule.push({ date: iso, isRestDay: true, routineName: 'Rest & Active Recovery' });
+        } else if (idx === 4) {
+          schedule.push({ date: iso, routineId: 'routine-upper-strength', routineName: 'Upper Body Power & Hypertrophy', isRestDay: false });
+        } else if (idx === 5) {
+          schedule.push({ date: iso, routineId: 'routine-lower-strength', routineName: 'Lower Body Strength & Posterior Chain', isRestDay: false });
+        } else {
+          schedule.push({ date: iso, isRestDay: true, routineName: 'Rest & Mobility' });
+        }
+      });
     } else {
+      // 6-Day PPL Double Wave
       currentWeekDates.forEach((date, idx) => {
         const iso = formatDateToISO(date);
         if (idx === 0) {
@@ -621,7 +642,7 @@ export function generateOnboardingPlan(
           schedule.push({ date: iso, routineId: 'routine-push-hypertrophy', routineName: 'Push: Hypertrophy Focus', isRestDay: false });
         } else if (idx === 4) {
           schedule.push({ date: iso, routineId: 'routine-pull-hypertrophy', routineName: 'Pull: Hypertrophy Focus', isRestDay: false });
-        } else if (idx === 5 && daysPerWeek >= 6) {
+        } else if (idx === 5) {
           schedule.push({ date: iso, routineId: 'routine-legs-hypertrophy', routineName: 'Legs: Hypertrophy Focus', isRestDay: false });
         } else {
           schedule.push({ date: iso, isRestDay: true, routineName: 'Rest & Mobility' });
@@ -634,6 +655,90 @@ export function generateOnboardingPlan(
     weeklyGoal,
     routines: generatedRoutines.length > 0 ? generatedRoutines : DEFAULT_ROUTINES,
     schedule,
+  };
+}
+
+// Adjust existing workout plan & schedule when goals change
+export function adjustWorkoutPlanFromGoal(
+  currentSchedule: DayPlan[],
+  currentRoutines: RoutineTemplate[],
+  newGoal: WeeklyGoal,
+  fitnessGoal: 'strength' | 'hypertrophy' | 'fat_loss' | 'mobility' = 'hypertrophy',
+  anchorDate: Date = new Date(2026, 10, 7),
+  unit: UnitSystem = 'lbs'
+): {
+  adjustedSchedule: DayPlan[];
+  adjustedRoutines: RoutineTemplate[];
+  adjustedGoal: WeeklyGoal;
+} {
+  const daysPerWeek = Math.max(1, Math.min(7, newGoal.targetWorkouts || 3));
+  const targetDurationMinutes = Math.round((newGoal.targetActiveMinutes || (daysPerWeek * 60)) / daysPerWeek) || 60;
+
+  const profile: UserOnboardingProfile = {
+    fitnessGoal,
+    experienceLevel: 'intermediate',
+    daysPerWeek,
+    equipment: 'gym',
+    targetDurationMinutes,
+    unit,
+  };
+
+  // Generate newly calibrated plan for target frequency and fitness goal
+  const generated = generateOnboardingPlan(profile, anchorDate);
+
+  // Intelligently merge schedule:
+  // - Retain any days with completed workouts or historical past days
+  // - Adapt today and all upcoming / future days to the new split
+  const todayIso = formatDateToISO(anchorDate);
+  const adjustedSchedule: DayPlan[] = [];
+
+  // 1. Keep all completed sessions and historical dates
+  currentSchedule.forEach((oldDay) => {
+    if (oldDay.completedWorkoutId || oldDay.date < todayIso) {
+      adjustedSchedule.push(oldDay);
+    }
+  });
+
+  // 2. Populate today and future days with the newly generated split
+  generated.schedule.forEach((newDay) => {
+    const existingIndex = adjustedSchedule.findIndex((d) => d.date === newDay.date);
+    if (existingIndex >= 0) {
+      // If the day was already marked completed, keep it completed!
+      if (!adjustedSchedule[existingIndex].completedWorkoutId) {
+        adjustedSchedule[existingIndex] = newDay;
+      }
+    } else {
+      adjustedSchedule.push(newDay);
+    }
+  });
+
+  // Sort chronologically
+  adjustedSchedule.sort((a, b) => a.date.localeCompare(b.date));
+
+  // 3. Reconcile routines: if user created custom routines, preserve them
+  const customRoutines = currentRoutines.filter((r) => r.isCustom);
+  const adjustedRoutines = [...generated.routines, ...customRoutines];
+
+  // 4. Ensure weekly goal values are synced
+  const adjustedGoal: WeeklyGoal = {
+    ...newGoal,
+    targetWorkouts: daysPerWeek,
+    targetActiveMinutes: newGoal.targetActiveMinutes || generated.weeklyGoal.targetActiveMinutes,
+    targetTotalSets: newGoal.targetTotalSets || generated.weeklyGoal.targetTotalSets,
+    targetVolume: newGoal.targetVolume || generated.weeklyGoal.targetVolume,
+    targetCardioMinutes: newGoal.targetCardioMinutes || generated.weeklyGoal.targetCardioMinutes,
+    targetMuscleSets: {
+      ...generated.weeklyGoal.targetMuscleSets,
+      ...newGoal.targetMuscleSets,
+    },
+    milestones: newGoal.milestones?.length > 0 ? newGoal.milestones : generated.weeklyGoal.milestones,
+    fitnessGoal,
+  };
+
+  return {
+    adjustedSchedule,
+    adjustedRoutines,
+    adjustedGoal,
   };
 }
 
